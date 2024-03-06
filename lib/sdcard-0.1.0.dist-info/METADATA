@@ -1,0 +1,6 @@
+Metadata-Version: 2.1
+Name: sdcard
+Version: 0.1.0
+Summary: SDCard block device driver.
+Author: 
+License: MIT

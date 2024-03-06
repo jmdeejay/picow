@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            body {
+                font-family: 'Arial', sans-serif;
+                background-color: #f4f4f4;
+                color: #333;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+                text-align: center;
+            }
+            
+            button[type="button"] {
+                padding: 30px 40px;
+                font-size: 48px;
+                background-color: #3498db;
+                color: #fff;
+                border: none;
+                border-radius: 16px;
+                cursor: pointer;
+            }
+            
+            button[type="button"]:hover {
+                background-color: #2980b9;
+            }
+            
+            button[disabled], button[disabled]:hover {
+                background-color: #aaa;
+                color: #ccc;
+                cursor: default;
+            }
+            
+            p {
+                font-size: 36px;
+            }
+            
+            #content {
+                align-items: center;
+                flex-direction: column;
+                display: flex;
+            }
+            
+            #light {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+            
+            #switches {
+                display: flex;
+                gap: 16px;
+                justify-content: space-evenly;
+            }
+            
+            #audioList {
+                list-style: none;
+                background-color: #e9e9e9;
+                border-radius: 4px;
+                border: 1px solid #c9c9c9;
+                padding: 8px 16px;
+                max-height: 350px;
+                overflow-y: auto;
+                width: 400px;
+            }
+            
+            #audioList li {
+                background-color: #3498db;
+                border-radius: 6px;
+                color: #fff;
+                padding: 10px;
+                margin: 5px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+            
+            #audioList li:hover {
+                background-color: #2980b9;
+            }
+        </style>
+        
+        <script defer type="application/javascript">
+            function fetchCall(url, onSuccess, method = "GET", body = null) {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: body ? JSON.stringify(body) : null,
+                };
+
+                fetch(url, options)
+                    .then(response => response.json())
+                    .then(data => onSuccess(data))
+                    .catch(error => console.error('Fetch Error:', error));
+            }
+            
+            function getAudioList() {
+                var onSuccess = function (response) {
+                    const audioList = document.getElementById('audioList');
+                    response.forEach(file => {
+                        const listItem = document.createElement('li');
+                        const fileName = file.split('.').slice(0, -1).join('.');
+                        listItem.textContent = fileName;
+                        listItem.addEventListener('click', () => playAudio(file));
+                        audioList.appendChild(listItem);
+                    });
+                };
+                fetchCall("/audio", onSuccess);
+            }
+            getAudioList();
+
+            function playAudio(filename) {
+                const audioPlayer = document.getElementById('audioPlayer');
+                audioPlayer.src = filename;
+                audioPlayer.play();
+            }
+            
+            function getLightStatus() {
+                var onSuccess = function (response) {
+                    updateLedStatus(response);
+                };
+                fetchCall("/light", onSuccess);
+            }
+            getLightStatus();
+            
+            function toggleLed(action, body) {
+                if (event) event.preventDefault();
+                var onSuccess = function (response) {
+                    updateLedStatus(response);
+                };
+                fetchCall(action, onSuccess, "POST", body);
+            }
+            
+            function updateLedStatus(response) {
+                if (response.state === "ON") {
+                    document.getElementById("lightOffBtn").disabled=false;
+                    document.getElementById("lightOnBtn").disabled=true;
+                } else {
+                    document.getElementById("lightOffBtn").disabled=true;
+                    document.getElementById("lightOnBtn").disabled=false;
+                }
+                document.getElementById("ledState").innerText = "LED is " + response.state;
+            }
+            
+            function updateTemperature() {
+                var onSuccess = function (response) {
+                    document.getElementById("temperature").innerText = "Pico temperature is " + response.temperature;
+                };
+                fetchCall("/temperature", onSuccess);
+            }
+            updateTemperature();
+            setInterval(function() {
+                // getLightStatus();
+                updateTemperature();
+            }, 5000);
+        </script>
+    </head>
+    <body>
+        <div id="content">
+            <div id="light">
+                <div id="switches">
+                    <button disabled id="lightOffBtn" type="button" onclick="toggleLed('/light', { state: 'OFF' })">
+                        Light off
+                    </button>
+                    <button disabled id="lightOnBtn" type="button" onclick="toggleLed('/light', { state: 'ON' })">
+                        Light on
+                    </button>
+                </div>
+                <p id="ledState">LED is ---</p>
+            </div>
+            <p id="temperature">Loading temperature...</p>
+            <p>Music</p>
+            <audio id="audioPlayer" controls style="width: 100%;"></audio>
+            <ul id="audioList"></ul>
+        </div>
+    </body>
+</html>
